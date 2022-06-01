@@ -73,7 +73,10 @@ static int sw_mgmt_event(lcz_lwm2m_sw_mgmt_event_t event)
 		ret = 0;
 		break;
 	case LCZ_LWM2M_SW_MGMT_EVENT_UNINSTALL:
-		/* Uninstall event used to reset state machine to allow for another install/update */
+		/* Uninstall event used to reset state machine to allow for another install/update.
+		 * Return 0 for the callback to allow the uninstall execution to continue without error
+		 * and let the software management object state machine to reset its state properly.
+		 */
 		ret = 0;
 		break;
 	default:

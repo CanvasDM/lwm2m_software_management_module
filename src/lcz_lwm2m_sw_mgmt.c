@@ -51,12 +51,14 @@ static int sw_mgmt_activate_exe_cb(uint16_t obj_inst_id, uint8_t *args, uint16_t
 	ARG_UNUSED(args_len);
 	ret = 0;
 
+	k_mutex_lock(&cb_lock, K_FOREVER);
 	SYS_SLIST_FOR_EACH_NODE(&sw_mgmt_event_callback_list, node) {
 		agent = CONTAINER_OF(node, struct lcz_lwm2m_sw_mgmt_event_callback_agent, node);
 		if (agent->event_callback != NULL && agent->obj_inst == obj_inst_id) {
 			ret |= agent->event_callback(LCZ_LWM2M_SW_MGMT_EVENT_ACTIVATE);
 		}
 	}
+	k_mutex_unlock(&cb_lock);
 
 	return ret;
 }
@@ -71,12 +73,14 @@ static int sw_mgmt_deactivate_exe_cb(uint16_t obj_inst_id, uint8_t *args, uint16
 	ARG_UNUSED(args_len);
 	ret = 0;
 
+	k_mutex_lock(&cb_lock, K_FOREVER);
 	SYS_SLIST_FOR_EACH_NODE(&sw_mgmt_event_callback_list, node) {
 		agent = CONTAINER_OF(node, struct lcz_lwm2m_sw_mgmt_event_callback_agent, node);
 		if (agent->event_callback != NULL && agent->obj_inst == obj_inst_id) {
 			ret |= agent->event_callback(LCZ_LWM2M_SW_MGMT_EVENT_DEACTIVATE);
 		}
 	}
+	k_mutex_unlock(&cb_lock);
 
 	return ret;
 }
@@ -130,11 +134,13 @@ static void *read_ver_cb(uint16_t obj_inst_id, uint16_t res_id, uint16_t res_ins
 {
 	sys_snode_t *node;
 	struct lcz_lwm2m_sw_mgmt_event_callback_agent *agent;
+	lcz_lwm2m_sw_mgmt_read_ver_cb_t cb;
 
 	ARG_UNUSED(res_id);
 	ARG_UNUSED(res_inst_id);
 	ARG_UNUSED(data_len);
 
+	cb = NULL;
 	k_mutex_lock(&cb_lock, K_FOREVER);
 	SYS_SLIST_FOR_EACH_NODE(&sw_mgmt_event_callback_list, node) {
 		agent = CONTAINER_OF(node, struct lcz_lwm2m_sw_mgmt_event_callback_agent, node);
@@ -142,13 +148,17 @@ static void *read_ver_cb(uint16_t obj_inst_id, uint16_t res_id, uint16_t res_ins
 			/* Only allow one registered callback for this object instance.
 			 * Use the first registered instance (the callback used when creating the obj).
 			 */
-			k_mutex_unlock(&cb_lock);
-			return agent->read_ver_callback();
+			cb = agent->read_ver_callback;
+			goto unlock;
 		}
 	}
+unlock:
 	k_mutex_unlock(&cb_lock);
-
-	return NULL;
+	if (cb) {
+		return cb();
+	} else {
+		return NULL;
+	}
 }
 
 static int write_data_cb(uint16_t obj_inst_id, uint16_t res_id, uint16_t res_inst_id, uint8_t *data,
@@ -156,10 +166,12 @@ static int write_data_cb(uint16_t obj_inst_id, uint16_t res_id, uint16_t res_ins
 {
 	sys_snode_t *node;
 	struct lcz_lwm2m_sw_mgmt_event_callback_agent *agent;
+	lcz_lwm2m_sw_mgmt_download_data_cb_t cb;
 
 	ARG_UNUSED(res_id);
 	ARG_UNUSED(res_inst_id);
 
+	cb = NULL;
 	k_mutex_lock(&cb_lock, K_FOREVER);
 	SYS_SLIST_FOR_EACH_NODE(&sw_mgmt_event_callback_list, node) {
 		agent = CONTAINER_OF(node, struct lcz_lwm2m_sw_mgmt_event_callback_agent, node);
@@ -167,14 +179,17 @@ static int write_data_cb(uint16_t obj_inst_id, uint16_t res_id, uint16_t res_ins
 			/* Only allow one registered callback for this object instance.
 			 * Use the first registered instance (the callback used when creating the obj).
 			 */
-			k_mutex_unlock(&cb_lock);
-			return agent->download_data_callback(data, data_len, last_block,
-							     total_size);
+			cb = agent->download_data_callback;
+			goto unlock;
 		}
 	}
+unlock:
 	k_mutex_unlock(&cb_lock);
-
-	return -ENOEXEC;
+	if (cb) {
+		return cb(data, data_len, last_block, total_size);
+	} else {
+		return -ENOEXEC;
+	}
 }
 
 /**************************************************************************************************/
