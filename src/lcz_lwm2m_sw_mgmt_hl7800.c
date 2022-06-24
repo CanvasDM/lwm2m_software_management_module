@@ -40,10 +40,10 @@ static int delete_update_file(void);
 /**************************************************************************************************/
 /* Local Data Definitions                                                                         */
 /**************************************************************************************************/
-struct lcz_lwm2m_sw_mgmt_event_callback_agent event_agent;
+static struct lcz_lwm2m_sw_mgmt_event_callback_agent event_agent;
 static int bytes_downloaded;
 static int update_file_size;
-struct mdm_hl7800_callback_agent hl7800_evt_agent;
+static struct mdm_hl7800_callback_agent hl7800_evt_agent;
 static K_WORK_DELAYABLE_DEFINE(start_fw_update_work, start_fw_update_work_cb);
 
 /**************************************************************************************************/
