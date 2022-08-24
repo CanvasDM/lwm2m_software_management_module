@@ -41,8 +41,9 @@ static int delete_update_file(void);
 /* Local Data Definitions                                                                         */
 /**************************************************************************************************/
 static struct lcz_lwm2m_sw_mgmt_event_callback_agent event_agent;
-static int bytes_downloaded;
-static int update_file_size;
+static int bytes_downloaded = 0;
+static int update_file_size = 0;
+static bool file_downloaded = false;
 static struct mdm_hl7800_callback_agent hl7800_evt_agent;
 static K_WORK_DELAYABLE_DEFINE(start_fw_update_work, start_fw_update_work_cb);
 
@@ -112,6 +113,7 @@ static int sw_mgmt_download_data_cb(uint8_t *data, uint16_t data_len, bool last_
 	if (bytes_downloaded > total_size) {
 		/* Starting a new download */
 		bytes_downloaded = data_len;
+		file_downloaded = false;
 		ret = delete_update_file();
 		if (ret < 0) {
 			LOG_ERR("Could not delete file [%d]", ret);
@@ -132,6 +134,7 @@ static int sw_mgmt_download_data_cb(uint8_t *data, uint16_t data_len, bool last_
 	if (last_block) {
 		update_file_size = bytes_downloaded;
 		bytes_downloaded = 0;
+		file_downloaded = true;
 	}
 
 exit:
@@ -142,27 +145,30 @@ static void hl7800_event_cb(enum mdm_hl7800_event event, void *event_data)
 {
 	uint8_t fota_state;
 
-	switch (event) {
-	case HL7800_EVENT_FOTA_STATE:
-		fota_state = *(uint8_t *)event_data;
-		if (fota_state == HL7800_FOTA_COMPLETE) {
-			lwm2m_swmgmt_install_completed(CONFIG_LCZ_LWM2M_SW_MGMT_HL7800_OBJ_INST, 0);
-			(void)delete_update_file();
-			bytes_downloaded = 0;
-			LOG_INF("HL7800 firmware update complete");
-		} else if (fota_state == HL7800_FOTA_FILE_ERROR) {
-			lwm2m_swmgmt_install_completed(CONFIG_LCZ_LWM2M_SW_MGMT_HL7800_OBJ_INST,
-						       -EIO);
-		} else if (fota_state == HL7800_FOTA_INSTALL) {
-			LOG_INF("Installing HL7800 firmware");
+	if (file_downloaded) {
+		switch (event) {
+		case HL7800_EVENT_FOTA_STATE:
+			fota_state = *(uint8_t *)event_data;
+			if (fota_state == HL7800_FOTA_COMPLETE) {
+				lwm2m_swmgmt_install_completed(
+					CONFIG_LCZ_LWM2M_SW_MGMT_HL7800_OBJ_INST, 0);
+				(void)delete_update_file();
+				bytes_downloaded = 0;
+				LOG_INF("HL7800 firmware update complete");
+			} else if (fota_state == HL7800_FOTA_FILE_ERROR) {
+				lwm2m_swmgmt_install_completed(
+					CONFIG_LCZ_LWM2M_SW_MGMT_HL7800_OBJ_INST, -EIO);
+			} else if (fota_state == HL7800_FOTA_INSTALL) {
+				LOG_INF("Installing HL7800 firmware");
+			}
+			break;
+		case HL7800_EVENT_FOTA_COUNT:
+			LOG_INF("Firmware write %d/%d (%d%%)", *(uint32_t *)event_data,
+				update_file_size, *(uint32_t *)event_data * 100 / update_file_size);
+			break;
+		default:
+			break;
 		}
-		break;
-	case HL7800_EVENT_FOTA_COUNT:
-		LOG_INF("Firmware write %d/%d (%d%%)", *(uint32_t *)event_data, update_file_size,
-			*(uint32_t *)event_data * 100 / update_file_size);
-		break;
-	default:
-		break;
 	}
 }
 
