@@ -107,34 +107,36 @@ static void *sw_mgmt_read_ver_cb(void)
 static int sw_mgmt_download_data_cb(uint8_t *data, uint16_t data_len, bool last_block,
 				    size_t total_size)
 {
-	int ret;
+	int ret = 0;
 
-	bytes_downloaded += data_len;
-	if (bytes_downloaded > total_size) {
-		/* Starting a new download */
-		bytes_downloaded = data_len;
-		file_downloaded = false;
-		ret = delete_update_file();
+	if (data_len > 0 && total_size > 0) {
+		bytes_downloaded += data_len;
+		if (bytes_downloaded > total_size) {
+			/* Starting a new download */
+			bytes_downloaded = data_len;
+			file_downloaded = false;
+			ret = delete_update_file();
+			if (ret < 0) {
+				LOG_ERR("Could not delete file [%d]", ret);
+				goto exit;
+			}
+		}
+
+		ret = fsu_append(CONFIG_FSU_MOUNT_POINT, CONFIG_LCZ_LWM2M_SW_MGMT_HL7800_FILE_NAME,
+				 (void *)data, data_len);
 		if (ret < 0) {
-			LOG_ERR("Could not delete file [%d]", ret);
+			LOG_ERR("Could not write file [%d]", ret);
 			goto exit;
 		}
-	}
 
-	ret = fsu_append(CONFIG_FSU_MOUNT_POINT, CONFIG_LCZ_LWM2M_SW_MGMT_HL7800_FILE_NAME,
-			 (void *)data, data_len);
-	if (ret < 0) {
-		LOG_ERR("Could not write file [%d]", ret);
-		goto exit;
-	}
+		LOG_INF("Download %d/%d (%d%%)", bytes_downloaded, total_size,
+			bytes_downloaded * 100 / total_size);
 
-	LOG_INF("Download %d/%d (%d%%)", bytes_downloaded, total_size,
-		bytes_downloaded * 100 / total_size);
-
-	if (last_block) {
-		update_file_size = bytes_downloaded;
-		bytes_downloaded = 0;
-		file_downloaded = true;
+		if (last_block) {
+			update_file_size = bytes_downloaded;
+			bytes_downloaded = 0;
+			file_downloaded = true;
+		}
 	}
 
 exit:
