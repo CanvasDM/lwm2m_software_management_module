@@ -9,13 +9,14 @@
 /**************************************************************************************************/
 /* Includes                                                                                       */
 /**************************************************************************************************/
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(lcz_lwm2m_sw_mgmt, CONFIG_LCZ_LWM2M_SW_MANAGEMENT_LOG_LEVEL);
 
-#include <zephyr.h>
-#include <init.h>
-#include "lwm2m_engine.h"
-#include "lcz_lwm2m.h"
+#include <zephyr/zephyr.h>
+#include <zephyr/init.h>
+#include <zephyr/net/lwm2m.h>
+#include <lwm2m_engine.h>
+
 #include "lcz_lwm2m_sw_mgmt.h"
 
 /**************************************************************************************************/

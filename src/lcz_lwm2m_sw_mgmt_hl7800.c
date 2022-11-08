@@ -9,16 +9,17 @@
 /**************************************************************************************************/
 /* Includes                                                                                       */
 /**************************************************************************************************/
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(lcz_lwm2m_sw_mgmt_hl7800, CONFIG_LCZ_LWM2M_SW_MANAGEMENT_LOG_LEVEL);
 
-#include <zephyr.h>
-#include <init.h>
-#include <drivers/modem/hl7800.h>
-#include "lwm2m_engine.h"
-#include "lcz_lwm2m.h"
+#include <zephyr/zephyr.h>
+#include <zephyr/init.h>
+#include <zephyr/drivers/modem/hl7800.h>
+#include <zephyr/net/lwm2m.h>
+#include <lwm2m_engine.h>
+#include <file_system_utilities.h>
+
 #include "lcz_lwm2m_sw_mgmt.h"
-#include "file_system_utilities.h"
 
 /**************************************************************************************************/
 /* Local Constant, Macro and Type Definitions                                                     */

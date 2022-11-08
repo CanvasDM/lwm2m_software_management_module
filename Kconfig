@@ -6,7 +6,7 @@
 menuconfig LCZ_LWM2M_SW_MANAGEMENT
 	bool "LCZ LwM2M Software Management"
 	depends on LCZ_LWM2M_CLIENT
-	depends on LCZ_LWM2M_SWMGMT_OBJ_SUPPORT
+	depends on LWM2M_SWMGMT_OBJ_SUPPORT
 
 if LCZ_LWM2M_SW_MANAGEMENT
 
