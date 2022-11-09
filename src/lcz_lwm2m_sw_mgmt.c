@@ -136,14 +136,13 @@ static void *read_ver_cb(uint16_t obj_inst_id, uint16_t res_id, uint16_t res_ins
 	sys_snode_t *node;
 	struct lcz_lwm2m_sw_mgmt_event_callback_agent *agent;
 	lcz_lwm2m_sw_mgmt_read_ver_cb_t cb;
+	char *ver_str;
 
 	ARG_UNUSED(res_id);
 	ARG_UNUSED(res_inst_id);
-	ARG_UNUSED(data_len);
-
 	cb = NULL;
 	k_mutex_lock(&cb_lock, K_FOREVER);
-	SYS_SLIST_FOR_EACH_NODE(&sw_mgmt_event_callback_list, node) {
+	SYS_SLIST_FOR_EACH_NODE (&sw_mgmt_event_callback_list, node) {
 		agent = CONTAINER_OF(node, struct lcz_lwm2m_sw_mgmt_event_callback_agent, node);
 		if (agent->event_callback != NULL && agent->obj_inst == obj_inst_id) {
 			/* Only allow one registered callback for this object instance.
@@ -156,7 +155,11 @@ static void *read_ver_cb(uint16_t obj_inst_id, uint16_t res_id, uint16_t res_ins
 unlock:
 	k_mutex_unlock(&cb_lock);
 	if (cb) {
-		return cb();
+		ver_str = (char *)cb();
+		if (ver_str && data_len) {
+			*data_len = strlen(ver_str);
+		}
+		return ver_str;
 	} else {
 		return NULL;
 	}
